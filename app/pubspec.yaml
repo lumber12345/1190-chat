@@ -24,7 +24,7 @@ dependencies:
   path: ^1.9.0
 
   # File picking (Android / iOS / Windows)
-  file_picker: ^8.1.4
+  file_picker: ^13.1.0
 
   # E2E encryption: X25519 key agreement + AES-256-GCM
   cryptography: ^2.7.0

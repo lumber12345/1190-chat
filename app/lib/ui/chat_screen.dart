@@ -57,12 +57,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _pickAndSendFile({bool imageOnly = false}) async {
-    final result = await FilePicker.platform.pickFiles(
+    final picked = await FilePicker.pickFile(
       type: imageOnly ? FileType.image : FileType.any,
-      allowMultiple: false,
-      withData: false,
     );
-    final path = result?.files.single.path;
+    final path = picked?.path;
     if (path == null) return;
     final file = File(path);
     if (!await file.exists()) return;
