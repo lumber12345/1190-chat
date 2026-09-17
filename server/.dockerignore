@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+data
+data_*
+Dockerfile
+.dockerignore
+docker-compose.yml
+Caddyfile
+README.md
+smoke_test.js

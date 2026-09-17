@@ -1,0 +1,195 @@
+name: Build & Release
+
+# Builds the 1190 Chat app for Android, Windows and Linux on every push/PR,
+# and packages a GitHub Release with all binaries when you push a version tag.
+#
+#   git tag v0.1.0 && git push --tags      -> publishes a Release with APK/AAB/exe
+#
+# The Android release build is signed with the debug key by default (perfectly
+# installable for sideloading). See INSTALL.md for wiring up a Play-Store
+# release keystore via repository secrets (optional).
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref to save minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.4'   # keep in sync with the version tested locally
+
+jobs:
+  # ------------------------------------------------------------- quality gate
+  test:
+    name: Analyze & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: System libs (for sqflite FFI in tests)
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  # ------------------------------------------------------------------ android
+  android:
+    name: Android (APK + AAB)
+    runs-on: ubuntu-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+
+      # The release build is signed with the debug key by default, so the APK
+      # below installs fine for sideloading/personal use. For Play-Store
+      # signing with your own keystore, see the "Release signing" section in
+      # INSTALL.md (adds key.properties + Gradle signing + repo secrets).
+      - run: flutter build apk --release
+      - run: flutter build appbundle --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: app/build/app/outputs/flutter-apk/app-release.aab
+
+  # ------------------------------------------------------------------ windows
+  windows:
+    name: Windows (exe)
+    runs-on: windows-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter config --enable-windows-desktop
+      - run: flutter build windows --release
+      - name: Package portable zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* `
+                           -DestinationPath chat1190-windows-x64.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: app/chat1190-windows-x64.zip
+
+  # -------------------------------------------------------------------- linux
+  linux:
+    name: Linux (tar.gz)
+    runs-on: ubuntu-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install desktop toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter config --enable-linux-desktop
+      - run: flutter build linux --release
+      - name: Package bundle
+        run: tar -czf chat1190-linux-x64.tar.gz -C build/linux/x64/release bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: app/chat1190-linux-x64.tar.gz
+
+  # --------------------------------------------------------------------- ios
+  # Compile-only unsigned build (installing on a device needs your signing
+  # certs). Runs only on tags and manual dispatch to save macOS minutes.
+  ios:
+    name: iOS (unsigned compile)
+    runs-on: macos-latest
+    needs: test
+    continue-on-error: true
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
+      - name: Package Runner.app
+        run: |
+          cd build/ios/iphoneos
+          zip -qry ../../../../chat1190-ios-unsigned.zip Runner.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-unsigned
+          path: app/chat1190-ios-unsigned.zip
+
+  # ----------------------------------------------------------------- release
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [android, windows, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: List artifacts
+        run: find dist -type f -exec ls -lh {} \;
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/**/*.apk
+            dist/**/*.aab
+            dist/**/*.zip
+            dist/**/*.tar.gz

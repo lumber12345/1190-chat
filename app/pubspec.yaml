@@ -1,0 +1,43 @@
+name: chat1190
+description: "1190 Chat — end-to-end encrypted messaging and file transfer over LAN and internet relay."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  provider: ^6.1.2
+
+  # Networking / relay client
+  http: ^1.2.2
+
+  # Local storage
+  sqflite: ^2.4.1
+  sqflite_common_ffi: ^2.3.4+4
+  shared_preferences: ^2.3.3
+  path_provider: ^2.1.5
+  path: ^1.9.0
+
+  # File picking (Android / iOS / Windows)
+  file_picker: ^8.1.4
+
+  # E2E encryption: X25519 key agreement + AES-256-GCM
+  cryptography: ^2.7.0
+  crypto: ^3.0.6
+
+  # Misc
+  intl: ^0.20.2
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,47 @@
+# 1190 Chat relay — one-command deploy.
+#
+#   docker compose up -d --build          # relay on http://<host>:8090
+#   docker compose --profile tls up -d    # + Caddy TLS proxy (edit Caddyfile first)
+#
+# State lives in the `relay-data` volume (users, offline queues, stored files).
+
+services:
+  relay:
+    build: .
+    image: 1190-chat-relay:latest
+    container_name: chat1190-relay
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      PORT: "8090"
+      DATA_DIR: "/data"
+    volumes:
+      - relay-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:'+process.env.PORT+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Optional: automatic HTTPS + WebSocket reverse proxy in front of the relay.
+  # Enable with `--profile tls` after putting your domain in ./Caddyfile.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["tls"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - relay
+
+volumes:
+  relay-data:
+  caddy-data:
+  caddy-config:

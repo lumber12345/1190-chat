@@ -1,0 +1,16 @@
+{
+  "name": "1190-chat-relay",
+  "version": "0.1.0",
+  "description": "1190 Chat relay server — routes E2E-encrypted messages and store-and-forwards encrypted files between devices on the internet.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,13 @@
+# Automatic HTTPS + WebSocket reverse proxy for the 1190 Chat relay.
+#
+# 1. Point your domain's DNS A/AAAA record at this server.
+# 2. Replace relay.example.com below with your domain.
+# 3. Run:  docker compose --profile tls up -d
+#
+# Caddy obtains and renews TLS certificates automatically and proxies
+# WebSockets (the /ws upgrade) with no extra config.
+
+relay.example.com {
+	encode gzip
+	reverse_proxy relay:8090
+}

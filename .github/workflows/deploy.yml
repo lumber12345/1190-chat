@@ -1,0 +1,48 @@
+name: Deploy relay to VPS
+
+# Copies the relay server to your VPS and (re)starts it with Docker Compose.
+# The image is built ON the VPS, so no registry login is needed there.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   DEPLOY_HOST      your server IP/domain
+#   DEPLOY_USER      ssh user (e.g. root, ubuntu, deploy)
+#   DEPLOY_SSH_KEY   the PRIVATE key (PEM) authorized on the VPS
+#   DEPLOY_PORT      optional, defaults to 22
+#
+# The VPS needs Docker + the Compose plugin installed. Run this workflow
+# manually from the Actions tab ("Run workflow").
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy server files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          source: "server/server.js,server/package.json,server/package-lock.json,server/Dockerfile,server/docker-compose.yml,server/Caddyfile,server/.dockerignore"
+          target: "~/chat1190-relay"
+
+      - name: Build & start relay on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            set -e
+            cd ~/chat1190-relay/server
+            docker compose up -d --build
+            docker compose ps
+            echo "--- health ---"
+            sleep 3
+            curl -fsS http://127.0.0.1:8090/health || echo "(health check pending)"

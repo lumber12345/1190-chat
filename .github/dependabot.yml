@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Flutter / Dart app dependencies
+  - package-ecosystem: "pub"
+    directory: "/app"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps(app)"
+    labels:
+      - "dependencies"
+      - "flutter"
+
+  # Relay server (Node) dependencies
+  - package-ecosystem: "npm"
+    directory: "/server"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps(server)"
+    labels:
+      - "dependencies"
+      - "server"
+    groups:
+      # Keep non-breaking updates in a single PR to reduce noise
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # GitHub Actions used by the workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "ci"
