@@ -23,7 +23,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # GHCR image names must be lowercase; github.repository may not be.
       - name: Compute image name
