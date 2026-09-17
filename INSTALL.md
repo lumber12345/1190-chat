@@ -196,6 +196,27 @@ prompted).
 > Production hardening (auth, rate limits, retention) is a checklist in
 > `server/README.md`. The relay only ever stores ciphertext.
 
+### Deploy on Render (easiest — free hosting with automatic HTTPS)
+
+The repo includes a `render.yaml` blueprint, so the relay can be deployed
+with zero configuration:
+
+1. Delete any half-configured manual service first (optional).
+2. Open **<https://render.com/deploy?repo=https://github.com/lumber12345/1190-chat>**
+   (or Render dashboard → **New → Blueprint** → pick this repo).
+3. Click **Apply** — Render reads `render.yaml` and creates the
+   `chat1190-relay` web service (Node 20, root dir `server`, health check
+   `/health`, free plan).
+4. When the build finishes you get `https://chat1190-relay.onrender.com` —
+   open `<that-url>/health` in a browser to confirm, then enter it in the
+   app under **Settings → Relay server URL**.
+
+Free-tier notes: the disk is ephemeral (registrations/offline queues are
+wiped on restart — devices re-register themselves automatically) and the
+service spins down after 15 min idle (first message pays a ~50 s cold
+start). For persistence, see the commented-out `disk:`/`DATA_DIR` block in
+`render.yaml` (requires the Starter plan).
+
 ### Run the relay with Docker (recommended for a server)
 
 ```bash

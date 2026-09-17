@@ -1,0 +1,34 @@
+# Render Blueprint — one-click deploy of the 1190 Chat relay server.
+#
+# How to use:
+#   Render dashboard → New → Blueprint → pick this repository → Apply.
+#   (or visit https://render.com/deploy?repo=https://github.com/lumber12345/1190-chat)
+#
+# Everything below is configured automatically: root directory, build/start
+# commands, health check, and Node version. After the deploy finishes, put the
+# service URL (https://chat1190-relay.onrender.com or similar) into the app's
+# Settings → Relay URL.
+
+services:
+  - type: web
+    name: chat1190-relay
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # The free plan's disk is EPHEMERAL (registrations/offline queues/files
+      # are wiped on restart; devices re-register themselves automatically).
+      # For persistence: change `plan: free` → `plan: starter`, uncomment the
+      # disk block below, and uncomment DATA_DIR so data lands on the disk.
+      # - key: DATA_DIR
+      #   value: /var/data
+    # disk:
+    #   name: relay-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
