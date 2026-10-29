@@ -28,7 +28,7 @@ dependencies:
 
   # E2E encryption: X25519 key agreement + AES-256-GCM
   cryptography: ^2.7.0
-  crypto: ^3.0.6
+  crypto: ^3.0.8
 
   # Misc
   intl: ^0.20.2
